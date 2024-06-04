@@ -1,6 +1,6 @@
 import os
 from trulens_eval import Feedback, Select, Tru
-from trulens_eval.feedback import Groundedness
+# from trulens_eval.feedback import Groundedness
 from trulens_eval.feedback.provider.openai import OpenAI as fOpenAI
 from trulens_eval.tru_virtual import TruVirtual, VirtualApp, VirtualRecord
 import streamlit as st
@@ -21,7 +21,7 @@ def build_tru_recorder():
     provider = fOpenAI()
 
     #Setting up the virtual app
-    grounded = Groundedness(groundedness_provider=provider)
+    # grounded = Groundedness(groundedness_provider=provider)
 
     virtual_dict = dict(
         llm=dict(
@@ -57,15 +57,21 @@ def build_tru_recorder():
         .aggregate(np.mean)
     )
 
-    # Groundedness of reponse based on context
-    grounded = Groundedness(groundedness_provider=provider)
+    # # Groundedness of reponse based on context
+    # grounded = Groundedness(groundedness_provider=provider)
+    # f_groundedness = (
+    #     Feedback(grounded.groundedness_measure_with_cot_reasons,
+    #             name="[METRIC] Groundedness"
+    #             )
+    #     .on(context_selection)
+    #     .on_output()
+    #     .aggregate(grounded.grounded_statements_aggregator)
+    # )
+
     f_groundedness = (
-        Feedback(grounded.groundedness_measure_with_cot_reasons,
-                name="[METRIC] Groundedness"
-                )
-        .on(context_selection)
+        Feedback(provider.groundedness_measure_with_cot_reasons, name = "Groundedness")
+        .on(Select.RecordCalls.retrieve.rets.collect())
         .on_output()
-        .aggregate(grounded.grounded_statements_aggregator)
     )
 
     # HARMLESS

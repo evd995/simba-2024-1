@@ -8,7 +8,7 @@ if not "selectedID" in st.session_state:
 
 st.write("# activities parameters")
 
-col1, col2, col3 = st.columns([0.2,0.4,0.4])
+col1, col2, col3 = st.columns([0.2,0.6,0.2])
 
 
 
@@ -41,7 +41,7 @@ with col2 :
             st.write("**Description :**", assistant["description"])
 
             with st.expander("**Instructions :**"):
-                st.write(assistant["instructions"])
+                st.text(assistant["instructions"])
             
 
 with col3 :

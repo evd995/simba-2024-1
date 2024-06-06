@@ -71,46 +71,49 @@ def load_template(activity_id, assistant_id, title):
         st.session_state["tru_recorder"] = tru_virtual
 
     # Using columns to place text and monitoring side by side
-    col1, col2 = st.columns([0.5,0.5])
-    with col1.container(height=1000, border=False):
-        
+    col1, col2 = st.columns([0.8,0.2])
+    
+    with col1:
         st.title(title)
-        intro_placeholder = st.empty()
-        if "messages" not in st.session_state:
-            intro_placeholder.markdown("Cargando chatbot...")
+        chatContainer = st.container(height=600,border=True)
+        with chatContainer:
+            intro_placeholder = st.empty()
+            if "messages" not in st.session_state:
+                intro_placeholder.markdown("Cargando chatbot...")
 
-        if len(st.session_state.messages):
-            intro_placeholder.markdown("")
+            if len(st.session_state.messages):
+                intro_placeholder.markdown("")
 
-        # Display chat messages from history on app rerun
-        for message in st.session_state.messages:
-            avatar = "😸" if message["role"] == "model" else None
-            with st.chat_message(message["role"], avatar=avatar):
-                st.markdown(message["content"])
+            # Display chat messages from history on app rerun
+            for message in st.session_state.messages:
+                avatar = "😸" if message["role"] == "model" else None
+                with st.chat_message(message["role"], avatar=avatar):
+                    st.markdown(message["content"])
 
         prompt = st.chat_input("What is up?", on_submit=disable, disabled=st.session_state["text_disabled"])
         if prompt and thread_id is not None:
             disable()
-            # Display user message in chat message container
-            st.chat_message("user").markdown(prompt)
-            # Add user message to chat history
-            st.session_state.messages.append({"role": "user", "content": prompt})
+            with chatContainer:
+                # Display user message in chat message container
+                st.chat_message("user").markdown(prompt)
+                # Add user message to chat history
+                st.session_state.messages.append({"role": "user", "content": prompt})
 
-            logging.info('Creating message in thread...')
-            with st.status("..."):
-                st.write("Espera un momento, estoy pensando en una respuesta...")
-                response_message = chatbot_helper.create_message(prompt, thread_id, assistant_id)        
-                logging.info(f'Response message: {response_message}')
+                logging.info('Creating message in thread...')
+                with st.status("..."):
+                    st.write("Espera un momento, estoy pensando en una respuesta...")
+                    response_message = chatbot_helper.create_message(prompt, thread_id, assistant_id)        
+                    logging.info(f'Response message: {response_message}')
 
-            # Start streaming model response
-            with st.chat_message("model", avatar="😸"):
-                st.markdown(response_message)
-                
-            # Add assistant response to chat history
-            st.session_state.messages.append({"role": "model", "content": response_message})
-            if "tru_recorder" in st.session_state:
-                ce.addRecord(prompt,response_message,"",st.session_state["tru_recorder"])
-                # ce.evaluateLast(col2,tru)
+                # Start streaming model response
+                with st.chat_message("model", avatar="😸"):
+                    st.markdown(response_message)
+                    
+                # Add assistant response to chat history
+                st.session_state.messages.append({"role": "model", "content": response_message})
+                if "tru_recorder" in st.session_state:
+                    ce.addRecord(prompt,response_message,"",st.session_state["tru_recorder"])
+                    # ce.evaluateLast(col2,tru)
             enable()
             st.rerun()
 

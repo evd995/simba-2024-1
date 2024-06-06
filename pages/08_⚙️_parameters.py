@@ -19,10 +19,12 @@ with col1 :
 
     if(st.session_state["selectedID"] != 0):
         st.write("### Activity menu")
+        if st.button("Change name", use_container_width=True):
+            parameters_functions.chgName(st.session_state["assistants"][st.session_state["selectedID"]])
         if st.button("Edit description", use_container_width=True):
-            parameters_functions.descrEdit()
-        if st.button("Change activity", use_container_width=True):
-            pass
+            parameters_functions.descrEdit(st.session_state["assistants"][st.session_state["selectedID"]])
+        if st.button("Change the activity's instructions", use_container_width=True):
+            parameters_functions.chgPrompt(st.session_state["assistants"][st.session_state["selectedID"]])
         if st.button("Manage files", use_container_width=True):
             pass
 

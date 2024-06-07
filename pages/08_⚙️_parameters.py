@@ -15,7 +15,7 @@ col1, col2, col3 = st.columns([0.2,0.6,0.2])
 with col1 :
     st.write("### Main menu")
     if st.button("New activity", use_container_width=True):
-        pass
+        parameters_functions.newAssistant()
 
     if(st.session_state["selectedID"] != 0):
         st.write("### Activity menu")
@@ -27,6 +27,8 @@ with col1 :
             parameters_functions.chgPrompt(st.session_state["assistants"][st.session_state["selectedID"]])
         if st.button("Manage files", use_container_width=True):
             pass
+        if st.button("Delete this assistant", type="primary"):
+            parameters_functions.delAssistant(st.session_state["assistants"][st.session_state["selectedID"]])
 
 with col2 :
     st.write("### Selected activity")

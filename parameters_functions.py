@@ -67,12 +67,100 @@ def descrEdit(assistant):
             st.session_state["assistants"] = getAssistants()
             st.rerun()
 
+#Delete assistant :
+@st.experimental_dialog("Are you sure ?")
+def delAssistant(assistant):
+    st.write(f"""You are about to delete the activity '{assistant["name"]}'.
+this action is irreversible, you will not be able recover it if you press the 'confirm' button.""")
+    
+    col1,col2 = st.columns([1,.2])
+    with col1:
+        if st.button("Cancel"):
+            st.rerun()
+    with col2:
+        if st.button("Confirm"): 
+            openai_client.beta.assistants.delete(assistant["id"])
+            st.session_state["assistants"] = getAssistants()
+            st.session_state["selectedID"] = 0
+            st.rerun()
+#New assistant :
+
+partial_template = """You are a friendly virtual assistant for the Education and Society course. 
+Your name is SIMBA 😸 (Sistema Inteligente de Medición, Bienestar y Apoyo) and you were created by the Núcleo Milenio de Educación Superior. 
+
+Respond in a friendly, concise and proactive way, using emojis where possible. 
+
+Help the student answer the following questions: 
+
+{questions}
+
+You should not give the answer, but guide the student to answer. Act as a Socratic tutor, taking the initiative in getting the students to answer the questions. 
+
+Encourage them to go and read a section of the provided documents to answer. If they do not have access to the text, they can find it at ‘https://bmdigitales-bibliotecas-uc-cl.pucdechile.idm.oclc.org/html5/EDUCACION%20Y%20SOCIOLOGIA/50/’.
+
+Your first message should begin with ‘Hello! 😸 This week I will help you reflect on the following questions: ’ Followed by the questions to answer.
+
+Your answers should be 100 words maximum."""
+
+@st.experimental_dialog("Define your new activity")
+def newAssistant():
+
+    if "initialized" not in st.session_state :
+        st.session_state["initialized"] = False
+
+    if not st.session_state["initialized"]:
+        st.session_state["nbQuestions"] = 1
+        st.session_state["questions"] = [""]
+
+    newprompt = PromptTemplate.from_template(partial_template)
+
+    newname = st.text_input("Activity's name", placeholder = "New name...")
+    newdesc = st.text_input("Activity's description", placeholder = "New description...")
+    model = "gpt-4-turbo"
+
+    st.write("### Activity's questions")
+    
+    add,remove = st.columns([.5,1])
+    with add:
+        if st.button("add a question") :
+            st.session_state["nbQuestions"] = st.session_state["nbQuestions"]+1
+    with remove:
+        if st.button("remove a question") :
+            st.session_state["nbQuestions"] = st.session_state["nbQuestions"]-1
+
+    for i in range(1,st.session_state["nbQuestions"]+1):
+        if i-1 < len(st.session_state["questions"]):
+            st.session_state["questions"][i-1] = st.text_input(f"Question {i}", placeholder="enter the question statement", key=f"question{i}", value=st.session_state["questions"][i-1])
+        else :
+            st.session_state["questions"].append("")
+            st.session_state["questions"][i-1] = st.text_input(f"Question {i}", placeholder="enter the question statement", key=f"question{i}")
+
+    st.session_state["initialized"] = True
+    col1,col2 = st.columns([.5,1])
+    with col1:
+        if st.button("Cancel"):
+            st.session_state["initialized"] = False
+            st.rerun()
+    with col2:
+        if st.button("Create"): 
+            openai_client.beta.assistants.create(
+                name=newname,
+                description=newdesc,
+                instructions=newprompt.format(questions = questionsGen()),
+                tools=[{"type": "retrieval"}],
+                model=model
+            )
+            st.session_state["assistants"] = getAssistants()
+            st.session_state["initialized"] = False
+            st.rerun()
+            
+
 #Modifying the main prompt :
 
 full_template ="""You are a {adj1} {teaching_adj} tutor for the course '{courseName}'.
 
 Your name is SIMBA 😸 (Sistema Inteligente de Medición, Bienestar y Apoyo) and you were created by the Núcleo Milenio de Educación Superior.
-Respond in a {adj1}, concise and proactive way, {emojis}.
+Respond in a {adj1}, concise and proactive way{emojis}.
 
 Help the student answer the following questions:
 
@@ -94,6 +182,13 @@ def chgPrompt(assistant):
 
     vals = extractVals(oldprompt)
 
+    if "initialized" not in st.session_state :
+        st.session_state["initialized"] = False
+
+    if not st.session_state["initialized"]:
+        st.session_state["nbQuestions"] = vals["nbQuestions"]
+        st.session_state["questions"] = vals["questions"]
+
     newprompt = PromptTemplate.from_template(full_template)
 
     courseName = st.text_input("what is the name of the course ?", value=vals["courseName"])
@@ -102,12 +197,9 @@ def chgPrompt(assistant):
     adj1 = st.selectbox("What attitude should the assistant have toward the students ?", attitudes, index=attitudes.index(vals["adj1"]))
 
     teachtypes = ["socratic","other"]
-    teachtype = st.selectbox("What shloud be the assistant's approach to teaching ?", teachtypes, index=teachtypes.index(vals["teaching_adj"]))
+    teachtype = st.selectbox("What should be the assistant's approach to teaching ?", teachtypes, index=teachtypes.index(vals["teaching_adj"]))
 
-    if "nbQuestions" not in st.session_state :
-        st.session_state["nbQuestions"] = 1
-
-    st.write("### Activity questions")
+    st.write("### Activity's questions")
     
     add,remove = st.columns([.5,1])
     with add:
@@ -118,21 +210,29 @@ def chgPrompt(assistant):
             st.session_state["nbQuestions"] = st.session_state["nbQuestions"]-1
 
     for i in range(1,st.session_state["nbQuestions"]+1):
-        st.text_input(f"Question {i}", placeholder="enter the question statement", key=f"question{i}")
+        if i-1 < len(st.session_state["questions"]):
+            st.session_state["questions"][i-1] = st.text_input(f"Question {i}", placeholder="enter the question statement", key=f"question{i}", value=st.session_state["questions"][i-1])
+        else :
+            st.session_state["questions"].append("")
+            st.session_state["questions"][i-1] = st.text_input(f"Question {i}", placeholder="enter the question statement", key=f"question{i}")
     
-    giveAnswers = st.checkbox("The assistant should give an answer to the activity questions if the student asks for it.")
+    giveAnswers = st.checkbox("The assistant should give an answer to the activity questions if the student asks for it.", value=vals["answers"])
 
-    mentiondocuments = st.checkbox("The assistant should encourage the student to rely on the provided documents for answering.")
+    useEmojis = st.checkbox("The assistant should use emojis.", value=vals["emojis"])
+
+    mentiondocuments = st.checkbox("The assistant should encourage the student to rely on the provided documents for answering.", value=vals["documents"])
     if mentiondocuments:
-        url = st.text_input("Is there an URL where to find those documents ?", value="", placeholder="leave empty if you have no url")
+        url = st.text_input("Is there an URL where to find those documents ?", value=vals["url"], placeholder="leave empty if you have no url")
     else :
         url = ""
     
-    limit = st.number_input("include a word count limit for the assistant's answers ? (0 = no limit)", min_value=0, value=0)
+    limit = st.number_input("include a word count limit for the assistant's answers ? (0 = no limit)", min_value=0, value=vals["limits"])
     
+    st.session_state["initialized"] = True
     col1,col2 = st.columns([.5,1])
     with col1:
         if st.button("Cancel"):
+            st.session_state["initialized"] = False
             st.rerun()
     with col2:
         if st.button("Submit"):
@@ -140,7 +240,7 @@ def chgPrompt(assistant):
                 courseName=courseName, 
                 teaching_adj=teachtype,
                 adj1 = adj1, 
-                emojis = "",
+                emojis = emojiGen(useEmojis),
                 questions = questionsGen(),
                 answers = answersGen(giveAnswers),
                 teaching_type = teachTypeGen(teachtype),
@@ -148,6 +248,7 @@ def chgPrompt(assistant):
                 limits=limitsgen(limit)
             ))
             st.session_state["assistants"] = getAssistants()
+            st.session_state["initialized"] = False
             st.rerun()
 
 def limitsgen(limit):
@@ -189,6 +290,14 @@ def questionsGen():
 
     return nstr
 
+def emojiGen(useEmojis):
+    nstr = ""
+    if useEmojis :
+        nstr = ", using emojis where possible."
+    else :
+        nstr = "."
+    return nstr
+
 def extractVals(prompt):
     vals = {}
     checkstring = "Your name is SIMBA 😸 (Sistema Inteligente de Medición, Bienestar y Apoyo) and you were created by the Núcleo Milenio de Educación Superior."
@@ -215,12 +324,27 @@ def extractVals(prompt):
         vals["courseName"] = "default name"
 
     # questions
-
+    vals["questions"] = []
+    sub = re.compile("Question . : ")
+    splitQ = sub.split(prompt)
+    vals["nbQuestions"] = len(sub.findall(prompt))
+    for i in range(1,len(splitQ)):
+        if i == len(splitQ):
+            vals["questions"].append(splitQ[i].partition('\n')[0])
+        else :
+            vals["questions"].append(splitQ[i].partition('\n')[0])
+    
     # answering questions
     if "You should not give the answer, but guide the student to answer." in prompt:
         vals["answers"] = True
     else :
         vals["answers"] = False
+
+    # emojis
+    if ", using emojis where possible." in prompt:
+        vals["emojis"] = True
+    else :
+        vals["emojis"] = False
 
     # documents
     vals["documents"] = False

@@ -1,8 +1,8 @@
 from openai import OpenAI
 import streamlit as st
 from langchain_core.prompts import PromptTemplate
-import os
 import re
+import time
 
 openai_client = OpenAI()
 
@@ -13,13 +13,14 @@ def getAssistants():
 
     for a in assistantslist :
         newassistant = {}
-
+        # print(dir(a))
         newassistant["id"] = a.id
         newassistant["name"] = a.name
         newassistant["model"] = a.model
         newassistant["description"] = a.description
         newassistant["instructions"] = a.instructions
         newassistant["metadata"] = a.metadata
+        newassistant["tool_resources"] = a.tool_resources
 
         assistants[a.id] = newassistant
 
@@ -28,6 +29,60 @@ def getAssistants():
 def setSelectedid(i):
     st.session_state["selectedID"] = i
 
+accepted_extensions = [".c",".cs",".cpp",".doc",".docx",".html",".java",".json",".md",".pdf",".php",".pptx",".py",".rb",".tex",".txt",".css",".js",".sh",".ts"]
+@st.experimental_dialog("Manage your activity's files")
+def manageFiles(assistant) :
+
+    if "file_search" in dir(assistant["tool_resources"]) and len(assistant["tool_resources"].file_search.vector_store_ids)>0:
+        main = st.empty()
+        delbuttonContainer = main.container()
+        delbutton = delbuttonContainer.button("❌ delete all the activity files")
+        if delbutton:
+            vid = assistant["tool_resources"].file_search.vector_store_ids[0]
+            openai_client.beta.assistants.update(assistant["id"],tool_resources={"file_search": {"vector_store_ids": []}})
+            openai_client.beta.vector_stores.delete(vid)
+            assistant["tool_resources"].file_search.vector_store_ids = []
+            st.write("done")
+            main.empty()
+            time.sleep(.2)
+            delbuttonContainer = main.container()
+
+
+    file = st.file_uploader("Drop a file you want to add here", type=accepted_extensions)
+
+    col1,col2 = st.columns([.5,1])
+    with col1:
+        if st.button("Close"):
+            st.session_state["assistants"] = getAssistants()
+            st.rerun()
+    with col2:
+        if st.button("Add file"):
+            # Upload a file to OpenAI
+            # LA piste !!! client.beta.assistants.files.list(assistant_id)
+            if file :
+                status = st.status("Uploading file")
+                # Add the uploaded file to the assistant
+                # search if vector store exists :
+                if "file_search" in dir(assistant["tool_resources"]) and len(assistant["tool_resources"].file_search.vector_store_ids)>0:
+                        vid = assistant["tool_resources"].file_search.vector_store_ids[0]
+                        openai_client.beta.vector_stores.files.upload(
+                            vector_store_id=vid, file=file
+                        )
+                else :
+                    vector_store = openai_client.beta.vector_stores.create(name=assistant["name"])
+                    openai_client.beta.vector_stores.files.upload(
+                        vector_store_id=vector_store.id, file=file
+                    )
+                    status.update(label="Linking file to the activity")
+                    openai_client.beta.assistants.update(assistant_id=assistant["id"],tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},)
+                
+                status.update(label="File added to the activity!",state="complete")
+                st.session_state["assistants"] = getAssistants()
+                assistant = st.session_state["assistants"][st.session_state["selectedID"]]
+
+            else :
+                st.write("please, add a file to be uploaded first.")
+    
 @st.experimental_dialog("Edit the activity's name")
 def chgName(assistant):
 
@@ -73,7 +128,7 @@ def delAssistant(assistant):
     st.write(f"""You are about to delete the activity '{assistant["name"]}'.
 this action is irreversible, you will not be able recover it if you press the 'confirm' button.""")
     
-    col1,col2 = st.columns([1,.2])
+    col1,col2 = st.columns([1,.3])
     with col1:
         if st.button("Cancel"):
             st.rerun()
@@ -85,7 +140,7 @@ this action is irreversible, you will not be able recover it if you press the 'c
             st.rerun()
 #New assistant :
 
-partial_template = """You are a friendly virtual assistant for the Education and Society course. 
+partial_template = """You are a friendly socratic virtual tutor for the course 'Education and Society'. 
 Your name is SIMBA 😸 (Sistema Inteligente de Medición, Bienestar y Apoyo) and you were created by the Núcleo Milenio de Educación Superior. 
 
 Respond in a friendly, concise and proactive way, using emojis where possible. 
@@ -136,20 +191,22 @@ def newAssistant():
             st.session_state["questions"][i-1] = st.text_input(f"Question {i}", placeholder="enter the question statement", key=f"question{i}")
 
     st.session_state["initialized"] = True
-    col1,col2 = st.columns([.5,1])
+    col1,col2 = st.columns([.3,1])
     with col1:
         if st.button("Cancel"):
             st.session_state["initialized"] = False
             st.rerun()
     with col2:
         if st.button("Create"): 
+            status = st.status("Creating new assistant")
             openai_client.beta.assistants.create(
                 name=newname,
                 description=newdesc,
                 instructions=newprompt.format(questions = questionsGen()),
-                tools=[{"type": "retrieval"}],
+                tools=[{"type": "file_search"}],
                 model=model
             )
+            status.update(label="Done!",state="complete")
             st.session_state["assistants"] = getAssistants()
             st.session_state["initialized"] = False
             st.rerun()
@@ -174,6 +231,8 @@ Your first message should begin with ‘Hello! 😸 This week I will help you re
 
 {limits}"""
 
+attitudes = ["friendly","informal","formal"]
+teachtypes = ["socratic","other"]
 
 @st.experimental_dialog("Edit the assistant's instructions for the activity")
 def chgPrompt(assistant):
@@ -193,10 +252,8 @@ def chgPrompt(assistant):
 
     courseName = st.text_input("what is the name of the course ?", value=vals["courseName"])
 
-    attitudes = ["friendly","informal","formal"]
     adj1 = st.selectbox("What attitude should the assistant have toward the students ?", attitudes, index=attitudes.index(vals["adj1"]))
 
-    teachtypes = ["socratic","other"]
     teachtype = st.selectbox("What should be the assistant's approach to teaching ?", teachtypes, index=teachtypes.index(vals["teaching_adj"]))
 
     st.write("### Activity's questions")
@@ -303,25 +360,30 @@ def extractVals(prompt):
     checkstring = "Your name is SIMBA 😸 (Sistema Inteligente de Medición, Bienestar y Apoyo) and you were created by the Núcleo Milenio de Educación Superior."
     
     # Adj
+    vals["adj1"] = "friendly"
     if checkstring in prompt:
         result = re.search('You are a (.*) ', prompt)
-        vals["adj1"] = result.group(1).split(" ")[0]
-    else :
-        vals["adj1"] = "friendly"
+        if result :
+            if result in attitudes:
+                vals["adj1"] = result.group(1).split(" ")[0]
+        
 
     # teaching style
+    vals["teaching_adj"] = "socratic"
     if checkstring in prompt:
         result = re.search(' (.*) tutor for the course', prompt)
-        vals["teaching_adj"] = result.group(1).split(" ")[-1]
-    else :
-        vals["teaching_adj"] = "socratic"
+        if result :
+            if result in teachtypes:
+                vals["teaching_adj"] = result.group(1).split(" ")[-1]
+        
 
     # course name
+    vals["courseName"] = "default name"
     if checkstring in prompt:
         result = re.search("tutor for the course '(.*)'.", prompt)
-        vals["courseName"] = result.group(1)
-    else :
-        vals["courseName"] = "default name"
+        if result :
+            vals["courseName"] = result.group(1)
+        
 
     # questions
     vals["questions"] = []
@@ -353,13 +415,15 @@ def extractVals(prompt):
         vals["documents"] = True
         if " If they do not have access to the text, they can find it at '" in prompt:
             result = re.search(" If they do not have access to the text, they can find it at '(.*)'.", prompt)
-            vals["url"] = result.group(1)
+            if result:
+                vals["url"] = result.group(1)
         
     # words limit
+    vals["limits"] = 0
     if checkstring in prompt and "Your answers should be " in prompt:
         result = re.search('Your answers should be (.*) words maximum.', prompt)
-        vals["limits"] = int(result.group(1))
-    else :
-        vals["limits"] = 0
+        if result:
+            vals["limits"] = int(result.group(1))
+        
 
     return vals

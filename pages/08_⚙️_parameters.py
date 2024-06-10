@@ -26,7 +26,7 @@ with col1 :
         if st.button("Change the activity's instructions", use_container_width=True):
             parameters_functions.chgPrompt(st.session_state["assistants"][st.session_state["selectedID"]])
         if st.button("Manage files", use_container_width=True):
-            pass
+            parameters_functions.manageFiles(st.session_state["assistants"][st.session_state["selectedID"]])
         if st.button("Delete this assistant", type="primary"):
             parameters_functions.delAssistant(st.session_state["assistants"][st.session_state["selectedID"]])
 
@@ -48,9 +48,11 @@ with col2 :
 
 with col3 :
     if "assistants" not in st.session_state:
-        st.session_state["assistants"] = parameters_functions.getAssistants()
+        st.session_state["assistants"] = parameters_functions.getAssistants()    
     asdict = st.session_state["assistants"]
     st.write("### activities")
+    if st.button("↺ refresh activities list"):
+        st.session_state["assistants"] = parameters_functions.getAssistants() 
     for id in asdict :
         if st.session_state["selectedID"] == id :
             t = "primary"

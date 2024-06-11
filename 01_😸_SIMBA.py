@@ -28,5 +28,7 @@ if get_auth_status():
     st.markdown("""
 
     ## **Cómo usar SIMBA:**
-
+     
+    A la izquierda encontraras pestañas con las actividades que se realizarán en este taller. Puedes seleccionar la actividad que deseas realizar y SIMBA te guiará a través de ella.            
+                
     """)

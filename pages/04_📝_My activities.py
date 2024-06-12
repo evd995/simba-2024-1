@@ -25,12 +25,12 @@ with activityContainer:
             assistant_id=assistant["id"], 
             title=assistant["name"]
         )
-
+        
 with st.sidebar:
     activityExpander = st.expander("📝 Activities")
     with activityExpander:
         for id in st.session_state["activities"]:
-            if st.button(st.session_state["activities"][id]["name"]) and get_auth_status():
+            if st.button(st.session_state["activities"][id]["name"], use_container_width=True) and get_auth_status():
                 st.session_state["selected activity"] = id
                     
 

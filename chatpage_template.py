@@ -5,12 +5,12 @@ import sys
 import chatbot_helper
 import chatbot_eval as ce
 from traces_helper import save_navigation
-from trulens_eval import Tru
+# from trulens_eval import Tru
 # from streamlit_js_eval import streamlit_js_eval
 
 put_all_messages = False
 means = False
-reset = True
+reset = False
 
 def disable():
     st.session_state["text_disabled"] = True
@@ -40,13 +40,13 @@ def load_template(activity_id, assistant_id, title):
     # Get message history
     st.session_state.messages = chatbot_helper.get_messages(thread_id)
 
-    tru = Tru()
+    # tru = Tru()
 
     if reset and ("already_reset" not in st.session_state) :
         st.session_state["already_reset"] = False
 
     if reset and not st.session_state["already_reset"] :
-        tru.reset_database()
+        # tru.reset_database()
         st.session_state["already_reset"] = True
 
     if "tru_recorder" not in st.session_state :

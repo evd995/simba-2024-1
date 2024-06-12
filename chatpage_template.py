@@ -76,7 +76,7 @@ def load_template(activity_id, assistant_id, title):
     # with col1:
     with st.container():
         st.write("## "+title)
-        chatContainer = st.container(height=600,border=True)
+        chatContainer = st.container(height=500,border=True)
         with chatContainer:
             intro_placeholder = st.empty()
             if "messages" not in st.session_state:

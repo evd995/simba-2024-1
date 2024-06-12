@@ -3,6 +3,7 @@ import streamlit as st
 from langchain_core.prompts import PromptTemplate
 import re
 import time
+from datetime import datetime, date
 
 openai_client = OpenAI()
 
@@ -28,6 +29,27 @@ def getAssistants():
 
 def setSelectedid(i):
     st.session_state["selectedID"] = i
+
+@st.experimental_dialog("Cleanup the files and vector stores")
+def delfiles() :
+    date = st.date_input("since?")
+
+    if st.button("go"):
+        if date:
+            sinceDate = datetime(date.year, date.month, date.day)
+            files = openai_client.files.list()
+            for file in files:
+                currentDate = datetime.fromtimestamp(file.created_at)
+                if sinceDate < currentDate:
+                    # print(file.filename)
+                    openai_client.files.delete(file.id)
+
+            vectors = openai_client.beta.vector_stores.list()
+            for vector in vectors:
+                currentDate = datetime.fromtimestamp(vector.created_at)
+                if sinceDate < currentDate or vector.usage_bytes == 0:
+                    # print(vector.name)
+                    openai_client.beta.vector_stores.delete(vector.id)
 
 accepted_extensions = [".c",".cs",".cpp",".doc",".docx",".html",".java",".json",".md",".pdf",".php",".pptx",".py",".rb",".tex",".txt",".css",".js",".sh",".ts"]
 @st.experimental_dialog("Manage your activity's files")
@@ -138,6 +160,7 @@ this action is irreversible, you will not be able recover it if you press the 'c
             st.session_state["assistants"] = getAssistants()
             st.session_state["selectedID"] = 0
             st.rerun()
+            
 #New assistant :
 
 partial_template = """You are a friendly socratic virtual tutor for the course 'Education and Society'. 
@@ -249,6 +272,8 @@ def chgPrompt(assistant):
         st.session_state["questions"] = vals["questions"]
 
     newprompt = PromptTemplate.from_template(full_template)
+
+    # expertMode = st.checkbox("Expert mode")
 
     courseName = st.text_input("what is the name of the course ?", value=vals["courseName"])
 

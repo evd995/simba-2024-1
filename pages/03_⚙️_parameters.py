@@ -53,6 +53,8 @@ with col3 :
     st.write("### activities")
     if st.button("↺ refresh activities list"):
         st.session_state["assistants"] = parameters_functions.getAssistants() 
+    if st.button("Cleanup files"):
+        parameters_functions.delfiles()
     for id in asdict :
         if st.session_state["selectedID"] == id :
             t = "primary"

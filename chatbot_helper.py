@@ -31,7 +31,7 @@ def get_activity_thread(activity_id):
     if not activity_thread_exists:
         thread = openai_client.beta.threads.create()
         activity_thread.set({'thread_id': thread.id})
-        create_message("Hola!", thread.id, st.secrets["ASSISTANT_IDS"][activity_id])
+        create_message("Hola!", thread.id, activity_id)
 
     return activity_thread.get().get('thread_id')
 

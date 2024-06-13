@@ -82,7 +82,7 @@ def load_template(activity_id, assistant_id, title):
             if "messages" not in st.session_state:
                 intro_placeholder.markdown("Cargando chatbot...")
 
-            if len(st.session_state.messages):
+            elif len(st.session_state.messages==0):
                 intro_placeholder.markdown("")
 
             # Display chat messages from history on app rerun

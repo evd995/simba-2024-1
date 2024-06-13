@@ -3,7 +3,7 @@ import logging
 import sys
 
 import chatbot_helper
-import chatbot_eval as ce
+# import chatbot_eval as ce
 from traces_helper import save_navigation
 # from trulens_eval import Tru
 # from streamlit_js_eval import streamlit_js_eval
@@ -49,26 +49,26 @@ def load_template(activity_id, assistant_id, title):
         # tru.reset_database()
         st.session_state["already_reset"] = True
 
-    if "tru_recorder" not in st.session_state :
-        tru_virtual = ce.build_tru_recorder()
-        if "all_messages-put" not in st.session_state:
-            st.session_state["all_messages-put"]  = False
+    # if "tru_recorder" not in st.session_state :
+    #     tru_virtual = ce.build_tru_recorder()
+    #     if "all_messages-put" not in st.session_state:
+    #         st.session_state["all_messages-put"]  = False
 
-        if put_all_messages and not st.session_state["all_messages-put"] :
-            exchange = {"input" : "","output" : ""}
-            for message in st.session_state.messages:
+    #     if put_all_messages and not st.session_state["all_messages-put"] :
+    #         exchange = {"input" : "","output" : ""}
+    #         for message in st.session_state.messages:
 
-                if message["role"] == "user":
-                    exchange["input"] = message["content"]
-                elif exchange["input"] != "" and message["role"] == "model":
-                    exchange["output"] = message["content"]
+    #             if message["role"] == "user":
+    #                 exchange["input"] = message["content"]
+    #             elif exchange["input"] != "" and message["role"] == "model":
+    #                 exchange["output"] = message["content"]
                 
-                if exchange["input"] != "" and exchange["output"] != "":
-                    ce.addRecord(exchange["input"], exchange["output"], "", tru_virtual)
-                    exchange["input"] = ""
-                    exchange["output"] = ""
+    #             if exchange["input"] != "" and exchange["output"] != "":
+    #                 ce.addRecord(exchange["input"], exchange["output"], "", tru_virtual)
+    #                 exchange["input"] = ""
+    #                 exchange["output"] = ""
 
-        st.session_state["tru_recorder"] = tru_virtual
+    #     st.session_state["tru_recorder"] = tru_virtual
 
     # Using columns to place text and monitoring side by side
     # col1, col2 = st.columns([0.8,0.2])
@@ -112,9 +112,9 @@ def load_template(activity_id, assistant_id, title):
                     
                 # Add assistant response to chat history
                 st.session_state.messages.append({"role": "model", "content": response_message})
-                if "tru_recorder" in st.session_state:
-                    ce.addRecord(prompt,response_message,"",st.session_state["tru_recorder"])
-                    # ce.evaluateLast(col2,tru)
+                # if "tru_recorder" in st.session_state:
+                #     ce.addRecord(prompt,response_message,"",st.session_state["tru_recorder"])
+                #     # ce.evaluateLast(col2,tru)
             enable()
             st.rerun()
 

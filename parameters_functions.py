@@ -21,7 +21,10 @@ def getAssistants():
         newassistant["description"] = a.description
         newassistant["instructions"] = a.instructions
         newassistant["metadata"] = a.metadata
-        newassistant["tool_resources"] = a.tool_resources
+        if("tool_resources" in dir(a)):
+            newassistant["tool_resources"] = a.tool_resources
+        else :
+            newassistant["tool_resources"] = {}
 
         assistants[a.id] = newassistant
 

@@ -12,6 +12,9 @@ st.set_page_config(layout="wide")
 
 st.session_state["activities"] = parameters_functions.getAssistants()
 
+if "selected activity" not in st.session_state :
+    st.session_state["selected activity"] = ""
+
 st.write("# Activity chat")
 
 activityContainer = st.container()
@@ -31,8 +34,13 @@ with st.sidebar:
     activityExpander = st.expander("📝 Activities")
     with activityExpander:
         for id in st.session_state["activities"]:
-            if st.button(st.session_state["activities"][id]["name"], use_container_width=True) :
+
+            style = "secondary"
+            if st.session_state["selected activity"] == id :
+                style = "primary"
+                
+            if st.button(st.session_state["activities"][id]["name"], use_container_width=True, type=style) :
                 st.session_state["selected activity"] = id
                 st.rerun()
-                    
+                
 

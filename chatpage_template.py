@@ -36,6 +36,8 @@ def load_template(activity_id, assistant_id, title):
 
     prompt = st.chat_input("What is up?")
     if prompt and thread_id is not None:
+        print(f'Prompt: {prompt}')
+        print(f'Thread ID: {thread_id}')
         # Display user message in chat message container
         st.chat_message("user").markdown(prompt)
         # Add user message to chat history
